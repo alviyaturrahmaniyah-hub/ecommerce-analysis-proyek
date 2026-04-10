@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
+import os
 
 # Mencari lokasi folder tempat file dashboard.py ini berada
 base_dir = os.path.dirname(__file__)
