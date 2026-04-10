@@ -7,7 +7,7 @@ import streamlit as st
 st.header('E-Commerce Customer Analysis Dashboard')
 
 # Load data
-df = pd.read_csv('main_data.csv')
+df = pd.read_csv('dashboard/main_data.csv')
 
 # Menampilkan Metric Sederhana
 col1, col2 = st.columns(2)
