@@ -6,7 +6,7 @@ import streamlit as st
 # ==============================
 # KONFIGURASI HALAMAN
 # ==============================
-st.set_page_config(page_title="E-Commerce Customer Analytics", page_icon="📊", layout="wide")
+st.set_page_config(page_title="E-Commerce Customer Analytics", page_icon="🛍️", layout="wide")
 
 # FUNGSI LOAD DATA
 @st.cache_data
@@ -20,28 +20,46 @@ def load_data():
 
 df = load_data()
 
-# SIDEBAR
+# ==============================
+# SIDEBAR DENGAN HIASAN
+# ==============================
 with st.sidebar:
-    st.title("💡 Filter Data")
+    st.markdown("<h1 style='text-align: center;'>✨ Menu Utama ✨</h1>", unsafe_allow_html=True)
+    st.markdown("---")
+    
+    st.write("🔍 **Pengaturan Filter**")
     m_score_list = sorted(df['M_Score'].unique())
-    selected_score = st.multiselect('Pilih M_Score:', options=m_score_list, default=m_score_list)
-    st.info("Gunakan filter ini untuk melihat data berdasarkan kelompok skor pengeluaran pelanggan.")
+    selected_score = st.multiselect('Pilih M_Score Pelanggan:', options=m_score_list, default=m_score_list)
+    
+    st.markdown("---")
+    st.info("💡 **Tips:** Filter ini akan merubah seluruh data di metrik dan grafik secara *real-time*.")
+    
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    st.caption("🚀 *Data Analysis Project v2.0*")
 
 df_filtered = df[df['M_Score'].isin(selected_score)]
 
-# MAIN PAGE
-st.title('E-Commerce Customer Analytics Dashboard 📊')
+# ==============================
+# MAIN PAGE (TAMPILAN UTAMA)
+# ==============================
+# Judul dengan gaya lebih kece
+st.markdown("<h1 style='text-align: center; color: #4A90E2;'>📊 E-Commerce Customer Analytics</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 18px;'>Memahami Perilaku Pelanggan melalui Segmentasi Moneter</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# KPI Metrics (Angka Utama)
+# KPI Metrics dengan hiasan kolom
+st.subheader("📌 Ringkasan Data Saat Ini")
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.metric("Total Pelanggan", value=df_filtered.shape[0])
+    st.markdown("🏠 **Total Pelanggan**")
+    st.title(f"{df_filtered.shape[0]}")
 with col2:
+    st.markdown("💰 **Rata-rata Belanja**")
     avg_mon = df_filtered.Monetary.mean()
-    st.metric("Rata-rata Pengeluaran", value=f"IDR {avg_mon:,.0f}")
+    st.title(f"IDR {avg_mon:,.0f}")
 with col3:
-    st.metric("Total Transaksi", value=f"{df_filtered.Frequency.sum():,}")
+    st.markdown("🛒 **Total Transaksi**")
+    st.title(f"{df_filtered.Frequency.sum():,}")
 
 st.markdown("---")
 
@@ -49,35 +67,27 @@ st.markdown("---")
 col_left, col_right = st.columns(2)
 
 with col_left:
-    st.subheader("1. Frekuensi vs Moneter")
-    fig1, ax1 = plt.subplots()
-    sns.scatterplot(data=df_filtered, x='Frequency', y='Monetary', hue='M_Score', palette='rocket', ax=ax1)
+    st.markdown("### 📈 Hubungan Frekuensi & Moneter")
+    fig1, ax1 = plt.subplots(figsize=(8, 6))
+    # Pakai warna palette 'magma' biar lebih 'nyala'
+    sns.scatterplot(data=df_filtered, x='Frequency', y='Monetary', hue='M_Score', palette='magma', ax=ax1)
     st.pyplot(fig1)
     
-    # PENJELASAN GAMBAR 1
-    with st.expander("Klik untuk melihat penjelasan grafik 1"):
-        st.write("""
-            **Maksud Gambar:** Grafik ini menunjukkan hubungan antara seberapa sering pelanggan belanja (*Frequency*) 
-            dengan total uang yang dihabiskan (*Monetary*). 
-            
-            **Insight:** Semakin ke kanan dan ke atas posisi titik, berarti pelanggan tersebut semakin loyal dan royal. 
-            Pelanggan dengan **M_Score tinggi** (warna gelap) adalah target utama untuk program loyalitas.
-        """)
+    with st.expander("📝 Lihat Insight"):
+        st.write("Grafik ini membantu kita mengidentifikasi pelanggan **High-Value**. Semakin gelap warnanya, semakin besar kontribusi ekonominya.")
 
 with col_right:
-    st.subheader("2. Distribusi Skor Moneter")
-    fig2, ax2 = plt.subplots()
-    sns.countplot(data=df_filtered, x='M_Score', palette='rocket', ax=ax2)
+    st.markdown("### 📊 Sebaran Skor Pelanggan")
+    fig2, ax2 = plt.subplots(figsize=(8, 6))
+    sns.countplot(data=df_filtered, x='M_Score', palette='magma', ax=ax2)
     st.pyplot(fig2)
 
-    # PENJELASAN GAMBAR 2
-    with st.expander("Klik untuk melihat penjelasan grafik 2"):
-        st.write("""
-            **Maksud Gambar:** Grafik ini menunjukkan jumlah pelanggan di setiap kategori skor moneter (1-5).
-            
-            **Insight:** Kita bisa melihat segmentasi pelanggan kita paling banyak menumpuk di mana. 
-            Jika banyak yang di skor rendah, berarti kita butuh strategi promo untuk meningkatkan nilai belanja mereka.
-        """)
+    with st.expander("📝 Lihat Insight"):
+        st.write("Distribusi ini menunjukkan apakah basis pelanggan kita didominasi oleh pembelanja kecil (skor 1-2) atau pembelanja besar (skor 4-5).")
 
+# Footer cantik
 st.markdown("---")
-st.caption('Copyright (c) Alviyatur Rahmaniyah 2026')
+st.markdown(
+    "<div style='text-align: center;'>Created with ❤️ by <b>Alviyatur Rahmaniyah</b> | © 2026</div>", 
+    unsafe_allow_html=True
+)
