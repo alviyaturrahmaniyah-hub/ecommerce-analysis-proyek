@@ -2,19 +2,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
-import os
-
-# Mencari lokasi folder tempat file dashboard.py ini berada
-base_dir = os.path.dirname(__file__)
-# Menggabungkan lokasi folder dengan nama file csv
-csv_path = os.path.join(base_dir, 'main_data.csv')
 
 # Setup judul dashboard
 st.header('E-Commerce Customer Analysis Dashboard')
 
 # Load data
-df = pd.read_csv(csv_path)
-
+# Jika di lokal error, hapus 'dashboard/' nya saja
+try:
+    df = pd.read_csv('dashboard/main_data.csv')
+except:
+    df = pd.read_csv('main_data.csv')
 # Menampilkan Metric Sederhana
 col1, col2 = st.columns(2)
 with col1:
