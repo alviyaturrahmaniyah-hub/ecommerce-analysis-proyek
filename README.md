@@ -14,5 +14,5 @@ Proyek ini bertujuan untuk menganalisis data transaksi e-commerce guna memahami 
 ```bash
 pip install -r requirements.txt
 
-## **Run streamlit app**
+## Run streamlit app
 streamlit run dashboard/dashboard.py
