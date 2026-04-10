@@ -1,4 +1,4 @@
-# E-Commerce Data Analysis Project
+# Proyek Analisis Data E-Commerce 📊
 
 ## Deskripsi
 Proyek ini bertujuan untuk menganalisis data transaksi e-commerce guna memahami tren penjualan dan perilaku pelanggan melalui teknik RFM (Recency, Frequency, Monetary) Analysis.
@@ -10,10 +10,9 @@ Proyek ini bertujuan untuk menganalisis data transaksi e-commerce guna memahami 
 - **requirements.txt**: Daftar library Python yang dibutuhkan.
 - **README.md**: Petunjuk penggunaan proyek.
 
-## Instalasi
-1. Clone repositori ini atau download folder proyek.
-2. Pastikan Python sudah terinstal di komputer Anda.
-3. Instal library yang dibutuhkan dengan menjalankan perintah berikut di terminal/command prompt:
-
+## Setup Environment - Shell/Terminal
 ```bash
 pip install -r requirements.txt
+
+## **Run streamlit app**
+streamlit run dashboard/dashboard.py
