@@ -15,79 +15,104 @@ def load_data():
         df = pd.read_csv('dashboard/main_data.csv')
     except:
         df = pd.read_csv('main_data.csv')
+    
+    # Pastikan kolom tanggal jadi datetime
+    # Sesuaikan 'order_purchase_timestamp' dengan nama kolom tanggal di CSV kamu
+    if 'order_purchase_timestamp' in df.columns:
+        df['order_purchase_timestamp'] = pd.to_datetime(df['order_purchase_timestamp'])
+    
     df['M_Score'] = df['M_Score'].astype(str)
     return df
 
 df = load_data()
 
 # ==============================
-# SIDEBAR DENGAN HIASAN
+# SIDEBAR (FILTER)
 # ==============================
 with st.sidebar:
     st.markdown("<h1 style='text-align: center;'>✨ Menu Utama ✨</h1>", unsafe_allow_html=True)
     st.markdown("---")
     
-    st.write("🔍 **Pengaturan Filter**")
+    # FILTER 1: RENTANG WAKTU (PENTING!)
+    st.write("📅 **Filter Rentang Waktu**")
+    min_date = df['order_purchase_timestamp'].min()
+    max_date = df['order_purchase_timestamp'].max()
+    
+    start_date, end_date = st.date_input(
+        label='Pilih Periode:',
+        min_value=min_date,
+        max_value=max_date,
+        value=[min_date, max_date]
+    )
+
+    # FILTER 2: M_SCORE
+    st.write("🔍 **Filter Skor Moneter**")
     m_score_list = sorted(df['M_Score'].unique())
-    selected_score = st.multiselect('Pilih M_Score Pelanggan:', options=m_score_list, default=m_score_list)
+    selected_score = st.multiselect('Pilih M_Score:', options=m_score_list, default=m_score_list)
     
     st.markdown("---")
-    st.info("💡 **Tips:** Filter ini akan merubah seluruh data di metrik dan grafik secara *real-time*.")
-    
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
-    st.caption("🚀 *Data Analysis Project v2.0*")
+    st.info("💡 Dashboard ini menampilkan performa penjualan dan analisis pelanggan RFM.")
 
-df_filtered = df[df['M_Score'].isin(selected_score)]
+# Proses Filter Data
+df_filtered = df[
+    (df['order_purchase_timestamp'] >= pd.to_datetime(start_date)) & 
+    (df['order_purchase_timestamp'] <= pd.to_datetime(end_date)) &
+    (df['M_Score'].isin(selected_score))
+]
 
 # ==============================
-# MAIN PAGE (TAMPILAN UTAMA)
+# MAIN PAGE
 # ==============================
-# Judul dengan gaya lebih kece
-st.markdown("<h1 style='text-align: center; color: #4A90E2;'>📊 E-Commerce Customer Analytics</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size: 18px;'>Memahami Perilaku Pelanggan melalui Segmentasi Moneter</p>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #4A90E2;'>📊 E-Commerce Performance & Customer Analytics</h1>", unsafe_allow_html=True)
 st.markdown("---")
 
-# KPI Metrics dengan hiasan kolom
-st.subheader("📌 Ringkasan Data Saat Ini")
+# KPI Metrics
+st.subheader("📌 Business Summary Metrics")
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.markdown("🏠 **Total Pelanggan**")
-    st.title(f"{df_filtered.shape[0]}")
+    st.metric("Total Customers", value=f"{df_filtered.customer_id.nunique():,}")
 with col2:
-    st.markdown("💰 **Rata-rata Belanja**")
-    avg_mon = df_filtered.Monetary.mean()
-    st.title(f"IDR {avg_mon:,.0f}")
+    total_revenue = df_filtered.Monetary.sum()
+    st.metric("Total Revenue", value=f"BRL {total_revenue:,.0f}")
 with col3:
-    st.markdown("🛒 **Total Transaksi**")
-    st.title(f"{df_filtered.Frequency.sum():,}")
+    total_orders = df_filtered.Frequency.sum()
+    st.metric("Total Orders", value=f"{total_orders:,.0f}")
 
 st.markdown("---")
 
-# Visualisasi
+# BARIS 1: TREN PENJUALAN (Menjawab Pertanyaan Bisnis 1)
+st.subheader("📈 Tren Penjualan Bulanan")
+# Resampling data untuk tren bulanan
+monthly_df = df_filtered.resample(rule='M', on='order_purchase_timestamp').agg({
+    "order_id": "nunique",
+    "Monetary": "sum"
+})
+monthly_df.index = monthly_df.index.strftime('%Y-%m')
+monthly_df = monthly_df.reset_index()
+
+fig_trend, ax_trend = plt.subplots(figsize=(16, 6))
+sns.lineplot(data=monthly_df, x='order_purchase_timestamp', y='Monetary', marker='o', color='#4A90E2', ax=ax_trend)
+plt.title("Perkembangan Pendapatan (2016-2018)", fontsize=15)
+plt.xticks(rotation=45)
+st.pyplot(fig_trend)
+
+st.markdown("---")
+
+# BARIS 2: RFM ANALYSIS (Menjawab Pertanyaan Bisnis 2)
 col_left, col_right = st.columns(2)
 
 with col_left:
-    st.markdown("### 📈 Hubungan Frekuensi & Moneter")
+    st.markdown("### 🎯 Hubungan Frekuensi & Moneter")
     fig1, ax1 = plt.subplots(figsize=(8, 6))
-    # Pakai warna palette 'magma' biar lebih 'nyala'
     sns.scatterplot(data=df_filtered, x='Frequency', y='Monetary', hue='M_Score', palette='magma', ax=ax1)
     st.pyplot(fig1)
-    
-    with st.expander("📝 Lihat Insight"):
-        st.write("Grafik ini membantu kita mengidentifikasi pelanggan **High-Value**. Semakin gelap warnanya, semakin besar kontribusi ekonominya.")
 
 with col_right:
-    st.markdown("### 📊 Sebaran Skor Pelanggan")
+    st.markdown("### 📊 Sebaran Skor Pelanggan (M_Score)")
     fig2, ax2 = plt.subplots(figsize=(8, 6))
     sns.countplot(data=df_filtered, x='M_Score', palette='magma', ax=ax2)
     st.pyplot(fig2)
 
-    with st.expander("📝 Lihat Insight"):
-        st.write("Distribusi ini menunjukkan apakah basis pelanggan kita didominasi oleh pembelanja kecil (skor 1-2) atau pembelanja besar (skor 4-5).")
-
-# Footer cantik
+# FOOTER
 st.markdown("---")
-st.markdown(
-    "<div style='text-align: center;'>Created with ❤️ by <b>Alviyatur Rahmaniyah</b> | © 2026</div>", 
-    unsafe_allow_html=True
-)
+st.markdown("<div style='text-align: center;'>Created with ❤️ by <b>Alviyatur Rahmaniyah</b> | © 2026</div>", unsafe_allow_html=True)
