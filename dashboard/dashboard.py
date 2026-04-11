@@ -7,115 +7,91 @@ import os
 # ==============================
 # KONFIGURASI HALAMAN
 # ==============================
-st.set_page_config(page_title="E-Commerce Customer Analytics", page_icon="🛍️", layout="wide")
+st.set_page_config(page_title="E-Commerce Customer Analytics", layout="wide")
 
 # ==============================
-# FUNGSI LOAD DATA
+# FUNGSI LOAD DATA (VERSI FIX CSV)
 # ==============================
 @st.cache_data
 def load_data():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(current_dir, 'main_data.csv')
-    
+    path = os.path.join(os.path.dirname(__file__), 'main_data.csv')
+    if not os.path.exists(path):
+        path = 'main_data.csv'
+        
     try:
-        df = pd.read_csv(file_path)
-    except FileNotFoundError:
-        df = pd.read_csv('main_data.csv')
-    
-    # --- TAMBAHAN UNTUK FILTER TANGGAL ---
-    # Pastikan kolom tanggal ada dan dikonversi ke datetime
-    # Sesuaikan 'order_purchase_timestamp' dengan nama kolom tanggal di CSV-mu
-    if 'order_purchase_timestamp' in df.columns:
-        df['order_purchase_timestamp'] = pd.to_datetime(df['order_purchase_timestamp'])
-    
-    df['M_Score'] = df['M_Score'].astype(str)
-    return df
+        # Gunakan sep=None dan engine='python' untuk deteksi pemisah otomatis
+        df = pd.read_csv(path, sep=None, engine='python')
+        
+        # Bersihkan nama kolom kalau ada spasi tersembunyi
+        df.columns = df.columns.str.strip()
+        
+        # Pastikan skor jadi string untuk filter
+        for col in ['R_Score', 'F_Score', 'M_Score']:
+            if col in df.columns:
+                df[col] = df[col].astype(str)
+        return df
+    except Exception as e:
+        return pd.DataFrame()
 
-try:
-    df = load_data()
-except Exception as e:
-    st.error(f"Gagal memuat data: {e}")
+df = load_data()
+
+if df.empty:
+    st.error("⚠️ Data gagal dimuat atau kosong. Pastikan file 'main_data.csv' sudah benar!")
     st.stop()
 
 # ==============================
 # SIDEBAR (FILTER INTERAKTIF)
 # ==============================
 with st.sidebar:
-    st.markdown("<h1 style='text-align: center;'>✨ Dashboard Menu ✨</h1>", unsafe_allow_html=True)
-    st.markdown("---")
+    st.title("✨ Menu Filter ✨")
+    st.info("Gunakan filter di bawah untuk eksplorasi data secara dinamis.")
     
-    # --- FILTER TANGGAL (RELEVAN LAINNYA) ---
-    st.write("📅 **Filter Rentang Waktu**")
-    if 'order_purchase_timestamp' in df.columns:
-        min_date = df['order_purchase_timestamp'].min().date()
-        max_date = df['order_purchase_timestamp'].max().date()
+    # Filter 1: R_Score (Relevansi Waktu)
+    st.write("📅 **Filter Kedekatan Waktu (Recency)**")
+    r_list = sorted(df['R_Score'].unique())
+    selected_r = st.multiselect('Pilih R_Score (5=Baru, 1=Lama):', r_list, default=r_list)
+    
+    # Filter 2: M_Score (Relevansi Ekonomi)
+    st.write("💰 **Filter Nilai Moneter**")
+    m_list = sorted(df['M_Score'].unique())
+    selected_m = st.multiselect('Pilih M_Score (5=Tinggi, 1=Rendah):', m_list, default=m_list)
 
-        start_date, end_date = st.date_input(
-            label='Pilih Rentang Waktu:',
-            min_value=min_date,
-            max_value=max_date,
-            value=[min_date, max_date]
-        )
-    else:
-        st.warning("Kolom tanggal tidak ditemukan untuk filter waktu.")
-
-    st.markdown("---")
-    st.write("🔍 **Filter Pelanggan**")
-    m_score_list = sorted(df['M_Score'].unique())
-    selected_score = st.multiselect(
-        'Pilih Skor Moneter (1-5):', 
-        options=m_score_list, 
-        default=m_score_list
-    )
-
-# Logic Filter Data
-if 'order_purchase_timestamp' in df.columns:
-    df_filtered = df[
-        (df['order_purchase_timestamp'].dt.date >= start_date) & 
-        (df['order_purchase_timestamp'].dt.date <= end_date) &
-        (df['M_Score'].isin(selected_score))
-    ]
-else:
-    df_filtered = df[df['M_Score'].isin(selected_score)]
+# Proses Filter
+df_filtered = df[df['R_Score'].isin(selected_r) & df['M_Score'].isin(selected_m)]
 
 # ==============================
-# MAIN PAGE
+# TAMPILAN UTAMA
 # ==============================
-st.markdown("<h1 style='text-align: center; color: #4A90E2;'>📊 E-Commerce Customer Analysis</h1>", unsafe_allow_html=True)
+st.title("📊 E-Commerce Customer RFM Analytics")
 st.markdown("---")
 
-# KPI Metrics
+# Metrics
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.metric("Total Pelanggan", value=f"{df_filtered.shape[0]:,}")
+    st.metric("Total Pelanggan", f"{len(df_filtered):,}")
 with col2:
-    avg_monetary = df_filtered['Monetary'].mean() if not df_filtered.empty else 0
-    st.metric("Rata-rata Belanja", value=f"BRL {avg_monetary:,.2f}")
+    val = df_filtered['Monetary'].mean() if not df_filtered.empty else 0
+    st.metric("Rata-rata Monetary", f"BRL {val:,.2f}")
 with col3:
-    total_freq = df_filtered['Frequency'].sum() if not df_filtered.empty else 0
-    st.metric("Total Transaksi", value=f"{total_freq:,}")
+    val = df_filtered['Frequency'].sum() if not df_filtered.empty else 0
+    st.metric("Total Transaksi", f"{val:,}")
 
 st.markdown("---")
 
 # Visualisasi
-col_left, col_right = st.columns(2)
-
-with col_left:
-    st.subheader("🎯 Hubungan Frekuensi vs Moneter")
+c1, c2 = st.columns(2)
+with c1:
+    st.subheader("🎯 Hubungan Frequency & Monetary")
     if not df_filtered.empty:
-        fig1, ax1 = plt.subplots(figsize=(10, 7))
-        sns.scatterplot(data=df_filtered, x='Frequency', y='Monetary', hue='M_Score', palette='viridis', s=100, ax=ax1)
-        st.pyplot(fig1)
-    else:
-        st.warning("Data tidak tersedia untuk filter ini.")
+        fig, ax = plt.subplots()
+        sns.scatterplot(data=df_filtered, x='Frequency', y='Monetary', hue='M_Score', ax=ax)
+        st.pyplot(fig)
 
-with col_right:
-    st.subheader("📊 Distribusi Skor Moneter")
+with c2:
+    st.subheader("📊 Distribusi Pelanggan")
     if not df_filtered.empty:
-        fig2, ax2 = plt.subplots(figsize=(10, 7))
-        sns.countplot(data=df_filtered, x='M_Score', palette='viridis', order=m_score_list, ax=ax2)
-        st.pyplot(fig2)
+        fig, ax = plt.subplots()
+        sns.countplot(data=df_filtered, x='M_Score', palette='magma', ax=ax)
+        st.pyplot(fig)
 
-# Footer
-st.markdown("---")
-st.markdown("<div style='text-align: center; color: grey;'>Alviyatur Rahmaniyah | Dicoding Project</div>", unsafe_allow_html=True)
+st.write("👈 *Gunakan sidebar untuk memfilter data dan melihat perubahan secara dinamis.*")
