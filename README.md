@@ -111,7 +111,8 @@ ecommerce-analysis-proyek/
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/USERNAME/ecommerce-analysis-proyek.git
+git clone https://github.com/alviyaturrahmaniyah-hub
+/ecommerce-analysis-proyek.git
 cd ecommerce-analysis-proyek
 ```
 
